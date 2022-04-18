@@ -1,49 +1,44 @@
-use super::puzzle::SudokuPuzzle;
+use super::puzzle::{SudokuPuzzle, SudokuPuzzleCell};
 
 pub fn attempt_to_solve(puzzle: &mut SudokuPuzzle) {
-    for _ in 1..1000 {
+    for _ in 1..100 {
         reduce_by_row(puzzle);
         reduce_by_column(puzzle);
+        reduce_by_block(puzzle);
     }
 }
 
 fn reduce_by_row(puzzle: &mut SudokuPuzzle) {
     for i in 0..puzzle.get_height() {
-        let row = puzzle.get_row_mut(i);
-        let mut row_values = Vec::new();
-
-        for cell in &row {
-            if let Some(value) = cell.get_value() {
-                row_values.push(value);
-            }
-        }
-
-        for cell in row {
-            if !cell.has_value() {
-                for row_value in &row_values {
-                    cell.remove_possibility(*row_value);
-                }
-            }
-        }
+        reduce_group(puzzle.get_row_mut(i));
     }
 }
 
 fn reduce_by_column(puzzle: &mut SudokuPuzzle) {
     for i in 0..puzzle.get_width() {
-        let column = puzzle.get_column_mut(i);
-        let mut column_values = Vec::new();
+        reduce_group(puzzle.get_column_mut(i));
+    }
+}
 
-        for cell in &column {
-            if let Some(value) = cell.get_value() {
-                column_values.push(value);
-            }
+fn reduce_by_block(puzzle: &mut SudokuPuzzle) {
+    for block in puzzle.get_all_blocks_mut() {
+        reduce_group(block);
+    }
+}
+
+fn reduce_group(group: Vec<&mut SudokuPuzzleCell>) {
+    let mut taken_values = Vec::new();
+
+    for cell in &group {
+        if let Some(value) = cell.get_value() {
+            taken_values.push(value);
         }
+    }
 
-        for cell in column {
-            if !cell.has_value() {
-                for column_value in &column_values {
-                    cell.remove_possibility(*column_value);
-                }
+    for cell in group {
+        if !cell.has_value() {
+            for column_value in &taken_values {
+                cell.remove_possibility(*column_value);
             }
         }
     }

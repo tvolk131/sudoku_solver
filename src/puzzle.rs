@@ -163,16 +163,6 @@ impl SudokuPuzzle {
         row_cells
     }
 
-    pub fn get_all_rows(&self) -> Vec<Vec<&SudokuPuzzleCell>> {
-        let mut rows = Vec::new();
-
-        for i in 0..self.get_height() {
-            rows.push(self.get_row(i));
-        }
-
-        rows
-    }
-
     pub fn get_column_mut(&mut self, mut column_index: usize) -> Vec<&mut SudokuPuzzleCell> {
         // Computing this here so we don't have to call this repeatedly.
         let block_width = self.get_block_width();
@@ -215,14 +205,22 @@ impl SudokuPuzzle {
         column_cells
     }
 
-    pub fn get_all_columns(&self) -> Vec<Vec<&SudokuPuzzleCell>> {
-        let mut columns = Vec::new();
+    pub fn get_all_blocks_mut(&mut self) -> Vec<Vec<&mut SudokuPuzzleCell>> {
+        let mut blocks = Vec::new();
 
-        for i in 0..self.get_width() {
-            columns.push(self.get_column(i));
+        for block_row in &mut self.block_rows {
+            for block in block_row {
+                let mut block_cells = Vec::new();
+
+                for cell in block.cell_rows.iter_mut().flatten() {
+                    block_cells.push(cell);
+                }
+
+                blocks.push(block_cells);
+            }
         }
 
-        columns
+        blocks
     }
 }
 
@@ -257,7 +255,7 @@ impl std::fmt::Display for SudokuPuzzle {
         }
 
         write!(f, " ")?;
-        for i in 0..self.get_width() {
+        for i in 0..self.get_width() + 2 {
             write!(f, "-")?;
         }
         write!(f, " ")?;
