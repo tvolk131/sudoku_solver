@@ -113,15 +113,36 @@ impl SudokuPuzzle {
         }
     }
 
-    fn get_height(&self) -> usize {
+    pub fn get_height(&self) -> usize {
         self.get_block_height() * self.get_vertical_block_count()
     }
 
-    fn get_width(&self) -> usize {
+    pub fn get_width(&self) -> usize {
         self.get_block_width() * self.get_horizontal_block_count()
     }
 
-    fn get_row(&self, mut row_index: usize) -> Vec<&SudokuPuzzleCell> {
+    pub fn get_row_mut(&mut self, mut row_index: usize) -> Vec<&mut SudokuPuzzleCell> {
+        // Computing this here so we don't have to call this repeatedly.
+        let block_height = self.get_block_height();
+
+        let mut block_index = 0;
+        while row_index >= block_height {
+            block_index += 1;
+            row_index -= block_height
+        }
+
+        let mut row_cells = Vec::new();
+
+        for horizontal_blocks in self.block_rows.get_mut(block_index) {
+            for block in horizontal_blocks {
+                row_cells.append(&mut block.get_block_row_mut(row_index));
+            }
+        }
+
+        row_cells
+    }
+
+    pub fn get_row(&self, mut row_index: usize) -> Vec<&SudokuPuzzleCell> {
         // Computing this here so we don't have to call this repeatedly.
         let block_height = self.get_block_height();
 
@@ -142,7 +163,38 @@ impl SudokuPuzzle {
         row_cells
     }
 
-    fn get_column(&self, mut column_index: usize) -> Vec<&SudokuPuzzleCell> {
+    pub fn get_all_rows(&self) -> Vec<Vec<&SudokuPuzzleCell>> {
+        let mut rows = Vec::new();
+
+        for i in 0..self.get_height() {
+            rows.push(self.get_row(i));
+        }
+
+        rows
+    }
+
+    pub fn get_column_mut(&mut self, mut column_index: usize) -> Vec<&mut SudokuPuzzleCell> {
+        // Computing this here so we don't have to call this repeatedly.
+        let block_width = self.get_block_width();
+
+        let mut block_index = 0;
+        while column_index > block_width {
+            block_index += 1;
+            column_index -= block_width
+        }
+
+        let mut column_cells = Vec::new();
+
+        for block_row in &mut self.block_rows {
+            if let Some(block) = block_row.get_mut(block_index) {
+                column_cells.append(&mut block.get_block_column_mut(column_index));
+            }
+        }
+
+        column_cells
+    }
+
+    pub fn get_column(&self, mut column_index: usize) -> Vec<&SudokuPuzzleCell> {
         // Computing this here so we don't have to call this repeatedly.
         let block_width = self.get_block_width();
 
@@ -162,6 +214,16 @@ impl SudokuPuzzle {
 
         column_cells
     }
+
+    pub fn get_all_columns(&self) -> Vec<Vec<&SudokuPuzzleCell>> {
+        let mut columns = Vec::new();
+
+        for i in 0..self.get_width() {
+            columns.push(self.get_column(i));
+        }
+
+        columns
+    }
 }
 
 impl std::fmt::Display for SudokuPuzzle {
@@ -178,16 +240,18 @@ impl std::fmt::Display for SudokuPuzzle {
                 writeln!(f, " ")?;
             }
 
-            for (i, cell) in self.get_row(i)
-            .iter()
-            .enumerate() {
+            for (i, cell) in self.get_row(i).iter().enumerate() {
                 if i % block_width == 0 {
                     write!(f, "|")?;
                 }
-                write!(f, "{}", match cell.get_value() {
-                    Some(value) => format!("{}", value),
-                    None => " ".to_string(),
-                })?;
+                write!(
+                    f,
+                    "{}",
+                    match cell.get_value() {
+                        Some(value) => format!("{}", value),
+                        None => " ".to_string(),
+                    }
+                )?;
             }
             writeln!(f, "|")?;
         }
@@ -234,6 +298,21 @@ impl SudokuPuzzleBlock {
         }
     }
 
+    fn get_block_row_mut(&mut self, row_index: usize) -> Vec<&mut SudokuPuzzleCell> {
+        let row = match self.cell_rows.get_mut(row_index) {
+            Some(row) => row,
+            None => return Vec::new(),
+        };
+
+        let mut borrowed_cells = Vec::new();
+
+        for cell in row {
+            borrowed_cells.push(cell);
+        }
+
+        borrowed_cells
+    }
+
     fn get_block_row(&self, row_index: usize) -> Vec<&SudokuPuzzleCell> {
         let row = match self.cell_rows.get(row_index) {
             Some(row) => row,
@@ -244,6 +323,18 @@ impl SudokuPuzzleBlock {
 
         for cell in row {
             borrowed_cells.push(cell);
+        }
+
+        borrowed_cells
+    }
+
+    fn get_block_column_mut(&mut self, column_index: usize) -> Vec<&mut SudokuPuzzleCell> {
+        let mut borrowed_cells = Vec::new();
+
+        for row in &mut self.cell_rows {
+            if let Some(foo) = row.get_mut(column_index) {
+                borrowed_cells.push(foo);
+            }
         }
 
         borrowed_cells
@@ -282,7 +373,7 @@ impl SudokuPuzzleBlock {
     }
 }
 
-struct SudokuPuzzleCell {
+pub struct SudokuPuzzleCell {
     possibilities: Vec<usize>,
 }
 
@@ -301,7 +392,7 @@ impl SudokuPuzzleCell {
         Self { possibilities }
     }
 
-    fn get_value(&self) -> Option<usize> {
+    pub fn get_value(&self) -> Option<usize> {
         if self.possibilities.len() != 1 {
             return None;
         }
@@ -317,6 +408,10 @@ impl SudokuPuzzleCell {
         self.possibilities = vec![value];
     }
 
+    pub fn has_value(&self) -> bool {
+        self.get_value().is_some()
+    }
+
     fn contains_possibility(&self, possibility: usize) -> bool {
         for cell_possibility in &self.possibilities {
             if cell_possibility == &possibility {
@@ -330,9 +425,9 @@ impl SudokuPuzzleCell {
     /// Removes a possibility for this cell.
     /// Panics if the cell already has only one possible value.
     /// Does nothing if the possibility being removed was already removed.
-    fn remove_possibility(&mut self, possibility: usize) {
-        if self.get_value().is_some() {
-            panic!("Cannot remove possibility from cell that already has a found value!");
+    pub fn remove_possibility(&mut self, possibility: usize) {
+        if self.get_value() == Some(possibility) {
+            panic!("Cannot remove value from cell that already has a found value! {:?} {}", possibility, self.get_value().unwrap());
         }
 
         self.possibilities = self
