@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn sudoku_puzzle_get_row() {
-        let puzzle = super::super::sample_puzzles::get_puzzle_1();
+        let puzzle = super::super::sample_puzzles::get_easy_puzzle_1();
 
         assert_eq!(
             puzzle

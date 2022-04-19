@@ -4,7 +4,7 @@ mod solver;
 
 fn main() {
     println!("Welcome to sudoku solver!");
-    let mut puzzle = sample_puzzles::get_puzzle_1();
+    let mut puzzle = sample_puzzles::get_easy_puzzle_1();
     println!("{}", puzzle);
     solver::attempt_to_solve(&mut puzzle);
     println!("{}", puzzle);

@@ -1,6 +1,6 @@
 use super::puzzle::SudokuPuzzle;
 
-pub fn get_puzzle_1() -> SudokuPuzzle {
+pub fn get_easy_puzzle_1() -> SudokuPuzzle {
     SudokuPuzzle::new_basic_9_by_9([
         [6, 0, 5, 4, 0, 0, 3, 0, 2],
         [7, 3, 4, 0, 6, 0, 0, 5, 8],
